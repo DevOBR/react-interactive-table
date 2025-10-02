@@ -44,3 +44,11 @@
 table {
   width: 100%;
 }
+
+section {
+  display: flex;
+  place-items: center;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}

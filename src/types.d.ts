@@ -1,4 +1,5 @@
 export declare global {
+  //TODO: Pending to check
   interface Array<T> {
     toSorted: (data: (a: T, b: T) => number) => T[]
   }

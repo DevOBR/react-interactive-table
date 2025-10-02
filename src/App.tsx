@@ -1,15 +1,22 @@
 import './App.css'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { type User } from './types.d'
-const API_URL = 'YOUR API HERE'
+
+const API_URL = import.meta.env.VITE_API_URL
 function App() {
   const [users, setUsers] = useState<User[]>([])
   const [sortByCountry, setsortByCountry] = useState(false)
+  const usersRef = useRef<User[]>([])
 
   useEffect(() => {
+    const storeUsers = (result: User[]) => {
+      setUsers(result)
+      usersRef.current = result
+    }
     fetch(API_URL)
       .then((data) => data.json())
-      .then((data) => setUsers(data.results))
+      .then(({ results }) => storeUsers(results))
+      .catch((e) => console.log(e))
   }, [])
 
   const sortedUsers = sortByCountry
@@ -29,6 +36,10 @@ function App() {
     setUsers(newUsersList)
   }
 
+  const handleResetUsers = () => {
+    setUsers(usersRef.current)
+  }
+
   return (
     <>
       <header>
@@ -37,6 +48,7 @@ function App() {
       <main>
         <section>
           <button onClick={handleSortUsers}>Sort by country</button>
+          <button onClick={handleResetUsers}>Resotre Data</button>
         </section>
 
         <table>
