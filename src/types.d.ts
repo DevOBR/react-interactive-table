@@ -102,3 +102,10 @@ export interface Picture {
   medium: string
   thumbnail: string
 }
+
+export enum SortByColumn {
+  None = 'None',
+  Name = 'Name',
+  Gender = 'Gender',
+  Country = 'Country'
+}

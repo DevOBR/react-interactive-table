@@ -1,11 +1,11 @@
 import './App.css'
 import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react'
-import { type User } from './types.d'
+import { SortByColumn, type User } from './types.d'
 
 const API_URL = import.meta.env.VITE_API_URL
 function App() {
   const [users, setUsers] = useState<User[]>([])
-  const [sortByCountry, setsortByCountry] = useState(false)
+  const [sortByColumn, setSortByColumn] = useState(SortByColumn.None)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
   const [bgColor, setBgColor] = useState(false)
 
@@ -24,8 +24,6 @@ function App() {
   }, [])
 
   const filteredUsers = useMemo(() => {
-    console.warn('filter')
-
     const newFilteredUsers = filterCountry
       ? users.filter((x) =>
           x.location.country.toLowerCase().includes(filterCountry)
@@ -45,16 +43,26 @@ function App() {
   }, [users, filterCountry])
 
   const sortedUsers: User[] = useMemo(() => {
-    console.warn('sorted')
-    return sortByCountry
-      ? filteredUsers.toSorted((a: User, b: User) =>
-          a.location.country.localeCompare(b.location.country)
-        )
+    const sorts = {
+      [SortByColumn.Name]: (a: User, b: User) =>
+        a.name.first.localeCompare(b.name.first),
+      [SortByColumn.Gender]: (a: User, b: User) =>
+        a.gender.localeCompare(b.gender),
+      [SortByColumn.Country]: (a: User, b: User) =>
+        a.location.country.localeCompare(b.location.country)
+    }
+
+    return sortByColumn !== SortByColumn.None
+      ? filteredUsers.toSorted(sorts[sortByColumn])
       : filteredUsers
-  }, [sortByCountry, filteredUsers])
+  }, [sortByColumn, filteredUsers])
 
   const handleSortUsers = () => {
-    setsortByCountry(!sortByCountry)
+    const sortBy =
+      sortByColumn === SortByColumn.Country
+        ? SortByColumn.None
+        : SortByColumn.Country
+    setSortByColumn(sortBy)
   }
 
   const handleDeleteUser = (email: string) => {
@@ -74,6 +82,10 @@ function App() {
 
   const handleSetBg = () => {
     setBgColor(!bgColor)
+  }
+
+  const handleSortBy = (sortByColumn: SortByColumn) => {
+    setSortByColumn(sortByColumn)
   }
 
   return (
@@ -97,9 +109,11 @@ function App() {
           <thead>
             <tr>
               <th>Picture</th>
-              <th>Name</th>
-              <th>Gender</th>
-              <th>Country</th>
+              <th onClick={() => handleSortBy(SortByColumn.Name)}>Name</th>
+              <th onClick={() => handleSortBy(SortByColumn.Gender)}>Gender</th>
+              <th onClick={() => handleSortBy(SortByColumn.Country)}>
+                Country
+              </th>
               <th></th>
             </tr>
           </thead>
