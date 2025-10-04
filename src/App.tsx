@@ -1,8 +1,10 @@
 import './App.css'
 import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react'
 import { SortByColumn, type User } from './types.d'
+import { UserList } from './components/UsersList'
+import { ActionButtonBar } from './components/ActionButtonBar'
+import { getUsers } from './services/users'
 
-const API_URL = import.meta.env.VITE_API_URL
 function App() {
   const [users, setUsers] = useState<User[]>([])
   const [sortByColumn, setSortByColumn] = useState(SortByColumn.None)
@@ -13,13 +15,13 @@ function App() {
   const filteredUsersRef = useRef<User[]>([])
 
   useEffect(() => {
-    const storeUsers = (result: User[]) => {
-      setUsers(result)
-      usersRef.current = result
+    const storeUsers = (users: User[]) => {
+      setUsers(users)
+      usersRef.current = users
     }
-    fetch(API_URL)
-      .then((data) => data.json())
-      .then(({ results }) => storeUsers(results))
+
+    getUsers()
+      .then((users) => storeUsers(users))
       .catch((e) => console.log(e))
   }, [])
 
@@ -94,52 +96,19 @@ function App() {
         <h1>React Interactive form</h1>
       </header>
       <main>
-        <section>
-          <button onClick={handleSetBg}>Set color rows</button>
-          <button onClick={handleSortUsers}>Sort by country</button>
-          <button onClick={handleResetUsers}>Resotre Data</button>
-          <input
-            type='text'
-            placeholder='Enter country'
-            onChange={handleOnCountryChange}
-          />
-        </section>
+        <ActionButtonBar
+          handleSetBg={handleSetBg}
+          handleSortUsers={handleSortUsers}
+          handleResetUsers={handleResetUsers}
+          handleOnCountryChange={handleOnCountryChange}
+        />
 
-        <table>
-          <thead>
-            <tr>
-              <th>Picture</th>
-              <th onClick={() => handleSortBy(SortByColumn.Name)}>Name</th>
-              <th onClick={() => handleSortBy(SortByColumn.Gender)}>Gender</th>
-              <th onClick={() => handleSortBy(SortByColumn.Country)}>
-                Country
-              </th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedUsers &&
-              sortedUsers.map((x: User, index: number) => {
-                const background =
-                  (bgColor && index % 2) != 0 ? 'grey' : 'transparent'
-                return (
-                  <tr key={x.email} style={{ background: background }}>
-                    <td>
-                      <img src={x.picture.thumbnail} alt='' />{' '}
-                    </td>
-                    <td> {x.name.first} </td>
-                    <td> {x.gender} </td>
-                    <td> {x.location.country} </td>
-                    <td>
-                      <button onClick={() => handleDeleteUser(x.email)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-          </tbody>
-        </table>
+        <UserList
+          users={sortedUsers}
+          isColoredTable={bgColor}
+          handleSortBy={handleSortBy}
+          handleDeleteUser={handleDeleteUser}
+        />
       </main>
     </>
   )

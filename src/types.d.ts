@@ -109,3 +109,10 @@ export enum SortByColumn {
   Gender = 'Gender',
   Country = 'Country'
 }
+
+export interface UsersListProps {
+  users: User[]
+  isColoredTable: boolean
+  handleSortBy: (sortByColumn: SortByColumn) => void
+  handleDeleteUser: (email: string) => void
+}
