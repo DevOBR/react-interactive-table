@@ -1,8 +1,8 @@
 import './App.css'
 import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react'
 import { SortByColumn, type User } from './types.d'
-import { UserList } from './components/UsersList'
 import { ActionButtonBar } from './components/ActionButtonBar'
+import { UserList } from './components/UsersList'
 import { getUsers } from './services/users'
 
 function App() {
@@ -10,20 +10,37 @@ function App() {
   const [sortByColumn, setSortByColumn] = useState(SortByColumn.None)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
   const [bgColor, setBgColor] = useState(false)
-
   const usersRef = useRef<User[]>([])
   const filteredUsersRef = useRef<User[]>([])
 
+  //TODO: Pending to refactor with react query
+  const [isLoading, setIsLoading] = useState(false)
+  const [Error, setError] = useState<object | null>(null)
+  const [page, setPage] = useState(1)
+
   useEffect(() => {
-    const storeUsers = (users: User[]) => {
-      setUsers(users)
+    // storeUsers set ref to presist and restor later
+    const storeUsers = (data: User[]) => {
+      console.log(users)
+      setUsers((prevState) => {
+        return prevState?.length === 0
+          ? (prevState = data)
+          : prevState.concat(data)
+      })
       usersRef.current = users
     }
 
-    getUsers()
-      .then((users) => storeUsers(users))
-      .catch((e) => console.log(e))
-  }, [])
+    setIsLoading(true)
+
+    getUsers(page)
+      .then((usersResult) => {
+        storeUsers(usersResult)
+      })
+      .catch(setError)
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [page])
 
   const filteredUsers = useMemo(() => {
     const newFilteredUsers = filterCountry
@@ -90,6 +107,10 @@ function App() {
     setSortByColumn(sortByColumn)
   }
 
+  function handleLoadMore(): void {
+    setPage((prevState) => prevState + 1)
+  }
+
   return (
     <>
       <header>
@@ -103,12 +124,28 @@ function App() {
           handleOnCountryChange={handleOnCountryChange}
         />
 
-        <UserList
-          users={sortedUsers}
-          isColoredTable={bgColor}
-          handleSortBy={handleSortBy}
-          handleDeleteUser={handleDeleteUser}
-        />
+        {sortedUsers.length > 0 && (
+          <UserList
+            users={sortedUsers}
+            isColoredTable={bgColor}
+            handleSortBy={handleSortBy}
+            handleDeleteUser={handleDeleteUser}
+          />
+        )}
+
+        {!isLoading && !Error && sortedUsers?.length >= 8 && (
+          <button onClick={handleLoadMore}>Load more</button>
+        )}
+
+        {/* TODO: Lets create a component for this */}
+        {isLoading && <strong className='message'>Loading..</strong>}
+
+        {sortedUsers.length <= 0 && !Error && !isLoading && (
+          <strong className='message'>There's no data</strong>
+        )}
+        {!isLoading && Error && (
+          <strong className='message'>Error fetching data</strong>
+        )}
       </main>
     </>
   )

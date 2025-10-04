@@ -57,3 +57,8 @@ section {
   justify-content: center;
   gap: 10px;
 }
+
+.message {
+  margin-top: 10px;
+  display: inline-block;
+}

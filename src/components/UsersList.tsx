@@ -30,7 +30,7 @@ export function UserList({
             const background =
               (isColoredTable && index % 2) != 0 ? 'grey' : 'transparent'
             return (
-              <tr key={x.email} style={{ background: background }}>
+              <tr key={x.login.uuid} style={{ background: background }}>
                 <td>
                   <img src={x.picture.thumbnail} alt='' />{' '}
                 </td>
