@@ -1,52 +1,27 @@
 import './App.css'
 import { useState, useRef, useMemo, type ChangeEvent } from 'react'
-import { SortByColumn, type User, type UserResult } from './types.d'
+import { SortByColumn, type User } from './types.d'
 import { ActionButtonBar } from './components/ActionButtonBar'
 import { UserList } from './components/UsersList'
-import { getUsers } from './services/users'
-import {
-  useInfiniteQuery,
-  useQueryClient,
-  type InfiniteData
-} from '@tanstack/react-query'
+import { useUsers } from './hooks/useUsers'
+import { Heaeder } from './components/Header'
 
 function App() {
   const [sortByColumn, setSortByColumn] = useState(SortByColumn.None)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
   const [bgColor, setBgColor] = useState(false)
   const filteredUsersRef = useRef<User[]>([])
-  const storedUsers = useRef<UserResult[]>([])
 
   const {
     isLoading,
-    data: usersResult,
-    error: Error,
+    users,
+    Error,
     isFetching,
     hasNextPage,
-    fetchNextPage
-  } = useInfiniteQuery({
-    queryKey: ['usersData'],
-    queryFn: getUsers,
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, s, lpp, app) => {
-      console.log({ lpp, app, lastPage, s })
-      return lastPage.nextCursor
-    }
-    // maxPages: 3 // -> limit cached data
-  })
-
-  const queryClient = useQueryClient()
-
-  const users: User[] = usersResult?.pages.flatMap((x) => x.users) ?? []
-
-  if (
-    usersResult &&
-    usersResult?.pages?.length === 1 &&
-    usersResult?.pages?.[0].users.length === 8 &&
-    usersResult?.pages?.[0].nextCursor === 2
-  ) {
-    storedUsers.current = usersResult?.pages
-  }
+    fetchNextPage,
+    deleteUserBy,
+    resetScrollAndData
+  } = useUsers()
 
   const filteredUsers = useMemo(() => {
     const newFilteredUsers = filterCountry
@@ -91,39 +66,11 @@ function App() {
   }
 
   const handleDeleteUser = (uuid: string) => {
-    const newUsersList = usersResult?.pages.map((page) => {
-      return {
-        ...page,
-        users: page.users.filter((x) => x.login.uuid !== uuid)
-      }
-    })
-
-    queryClient.setQueryData(
-      ['usersData'],
-      (oldData: InfiniteData<UserResult, unknown>) => {
-        if (!oldData) return oldData
-        return {
-          pages: newUsersList,
-          pageParams: oldData.pageParams
-        }
-      }
-    )
+    deleteUserBy(uuid)
   }
 
   const handleResetUsers = () => {
-    console.log(storedUsers.current)
-    if (storedUsers.current.length > 0) {
-      queryClient.setQueryData(
-        ['usersData'],
-        (oldData: InfiniteData<UserResult, unknown>) => {
-          if (!oldData) return oldData
-          return {
-            pages: storedUsers.current,
-            pageParams: [-199]
-          }
-        }
-      )
-    }
+    resetScrollAndData()
   }
 
   const handleOnCountryChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -146,9 +93,7 @@ function App() {
 
   return (
     <>
-      <header>
-        <h1>React Interactive form: {users?.length}</h1>
-      </header>
+      <Heaeder />
       <main>
         <ActionButtonBar
           handleSetBg={handleSetBg}

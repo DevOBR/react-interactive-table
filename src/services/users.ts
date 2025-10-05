@@ -15,9 +15,10 @@ export const getUsers = async ({
     })
     .then((data) => {
       const resp: UserResult = {
-        users: data.results,
+        users: data?.results,
         nextCursor: pageParam + 1
       }
+
       if (pageParam <= 2) {
         resp.nextCursor = resp?.nextCursor ? pageParam + 1 : undefined
         return resp
