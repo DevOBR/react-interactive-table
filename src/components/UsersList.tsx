@@ -30,15 +30,15 @@ export function UserList({
             const background =
               (isColoredTable && index % 2) != 0 ? 'grey' : 'transparent'
             return (
-              <tr key={x.login.uuid} style={{ background: background }}>
+              <tr key={x?.login?.uuid} style={{ background: background }}>
                 <td>
-                  <img src={x.picture.thumbnail} alt='' />{' '}
+                  <img src={x?.picture?.thumbnail} alt='' />{' '}
                 </td>
-                <td> {x.name.first} </td>
-                <td> {x.gender} </td>
-                <td> {x.location.country} </td>
+                <td> {x?.name.first} </td>
+                <td> {x?.gender} </td>
+                <td> {x?.location.country} </td>
                 <td>
-                  <button onClick={() => handleDeleteUser(x.email)}>
+                  <button onClick={() => handleDeleteUser(x?.login?.uuid)}>
                     Delete
                   </button>
                 </td>

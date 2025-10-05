@@ -116,3 +116,8 @@ export interface UsersListProps {
   handleSortBy: (sortByColumn: SortByColumn) => void
   handleDeleteUser: (email: string) => void
 }
+
+export interface UserResult {
+  users: User[]
+  nextCursor: number | undefined
+}

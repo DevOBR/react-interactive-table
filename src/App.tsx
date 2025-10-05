@@ -1,46 +1,52 @@
 import './App.css'
-import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react'
-import { SortByColumn, type User } from './types.d'
+import { useState, useRef, useMemo, type ChangeEvent } from 'react'
+import { SortByColumn, type User, type UserResult } from './types.d'
 import { ActionButtonBar } from './components/ActionButtonBar'
 import { UserList } from './components/UsersList'
 import { getUsers } from './services/users'
+import {
+  useInfiniteQuery,
+  useQueryClient,
+  type InfiniteData
+} from '@tanstack/react-query'
 
 function App() {
-  const [users, setUsers] = useState<User[]>([])
   const [sortByColumn, setSortByColumn] = useState(SortByColumn.None)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
   const [bgColor, setBgColor] = useState(false)
-  const usersRef = useRef<User[]>([])
   const filteredUsersRef = useRef<User[]>([])
+  const storedUsers = useRef<UserResult[]>([])
 
-  //TODO: Pending to refactor with react query
-  const [isLoading, setIsLoading] = useState(false)
-  const [Error, setError] = useState<object | null>(null)
-  const [page, setPage] = useState(1)
-
-  useEffect(() => {
-    // storeUsers set ref to presist and restor later
-    const storeUsers = (data: User[]) => {
-      console.log(users)
-      setUsers((prevState) => {
-        return prevState?.length === 0
-          ? (prevState = data)
-          : prevState.concat(data)
-      })
-      usersRef.current = users
+  const {
+    isLoading,
+    data: usersResult,
+    error: Error,
+    isFetching,
+    hasNextPage,
+    fetchNextPage
+  } = useInfiniteQuery({
+    queryKey: ['usersData'],
+    queryFn: getUsers,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, s, lpp, app) => {
+      console.log({ lpp, app, lastPage, s })
+      return lastPage.nextCursor
     }
+    // maxPages: 3 // -> limit cached data
+  })
 
-    setIsLoading(true)
+  const queryClient = useQueryClient()
 
-    getUsers(page)
-      .then((usersResult) => {
-        storeUsers(usersResult)
-      })
-      .catch(setError)
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }, [page])
+  const users: User[] = usersResult?.pages.flatMap((x) => x.users) ?? []
+
+  if (
+    usersResult &&
+    usersResult?.pages?.length === 1 &&
+    usersResult?.pages?.[0].users.length === 8 &&
+    usersResult?.pages?.[0].nextCursor === 2
+  ) {
+    storedUsers.current = usersResult?.pages
+  }
 
   const filteredUsers = useMemo(() => {
     const newFilteredUsers = filterCountry
@@ -84,15 +90,40 @@ function App() {
     setSortByColumn(sortBy)
   }
 
-  const handleDeleteUser = (email: string) => {
-    const newUsersList = users.filter(
-      (x) => x.email.toLowerCase() !== email.toLowerCase()
+  const handleDeleteUser = (uuid: string) => {
+    const newUsersList = usersResult?.pages.map((page) => {
+      return {
+        ...page,
+        users: page.users.filter((x) => x.login.uuid !== uuid)
+      }
+    })
+
+    queryClient.setQueryData(
+      ['usersData'],
+      (oldData: InfiniteData<UserResult, unknown>) => {
+        if (!oldData) return oldData
+        return {
+          pages: newUsersList,
+          pageParams: oldData.pageParams
+        }
+      }
     )
-    setUsers(newUsersList)
   }
 
   const handleResetUsers = () => {
-    setUsers(usersRef.current)
+    console.log(storedUsers.current)
+    if (storedUsers.current.length > 0) {
+      queryClient.setQueryData(
+        ['usersData'],
+        (oldData: InfiniteData<UserResult, unknown>) => {
+          if (!oldData) return oldData
+          return {
+            pages: storedUsers.current,
+            pageParams: [-199]
+          }
+        }
+      )
+    }
   }
 
   const handleOnCountryChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -104,17 +135,19 @@ function App() {
   }
 
   const handleSortBy = (sortByColumn: SortByColumn) => {
-    setSortByColumn(sortByColumn)
+    setSortByColumn((prev) =>
+      prev === sortByColumn ? SortByColumn.None : sortByColumn
+    )
   }
 
   function handleLoadMore(): void {
-    setPage((prevState) => prevState + 1)
+    if (!isFetching && hasNextPage) fetchNextPage()
   }
 
   return (
     <>
       <header>
-        <h1>React Interactive form</h1>
+        <h1>React Interactive form: {users?.length}</h1>
       </header>
       <main>
         <ActionButtonBar
@@ -133,18 +166,22 @@ function App() {
           />
         )}
 
-        {!isLoading && !Error && sortedUsers?.length >= 8 && (
-          <button onClick={handleLoadMore}>Load more</button>
+        {hasNextPage && !isLoading && !Error && hasNextPage && (
+          <button onClick={handleLoadMore} className='message'>
+            Load more
+          </button>
         )}
 
         {/* TODO: Lets create a component for this */}
         {isLoading && <strong className='message'>Loading..</strong>}
 
-        {sortedUsers.length <= 0 && !Error && !isLoading && (
+        {sortedUsers.length <= 0 && !Error && !isLoading && !hasNextPage && (
           <strong className='message'>There's no data</strong>
         )}
         {!isLoading && Error && (
-          <strong className='message'>Error fetching data</strong>
+          <strong className='message'>
+            Error fetching data {Error.message}
+          </strong>
         )}
       </main>
     </>

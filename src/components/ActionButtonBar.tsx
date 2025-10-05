@@ -16,7 +16,7 @@ export function ActionButtonBar({
     <section>
       <button onClick={handleSetBg}>Set color rows</button>
       <button onClick={handleSortUsers}>Sort by country</button>
-      <button onClick={handleResetUsers}>Resotre Data</button>
+      <button onClick={handleResetUsers}>Resotre data</button>
       <input
         type='text'
         placeholder='Enter country'
